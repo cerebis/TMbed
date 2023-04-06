@@ -60,10 +60,11 @@ def get_parent():
     return Path(Path(__file__).parent, 'models')
 
 
-def load_encoder(use_gpu, model_path=None):
-    if model_path is None:
-        model_path = Path(get_parent(), 't5')
-    return T5Encoder(model_path, use_gpu)
+def load_encoder(use_gpu, custom_path=None):
+    if custom_path is not None:
+        # load encoder models from a custom path, rather than within tmbed package folder
+        return T5Encoder(custom_path, use_gpu)
+    return T5Encoder(Path(get_parent(), 't5'), use_gpu)
 
 
 def load_models():
@@ -162,6 +163,7 @@ def embed(fasta_file: Path = ARGS.fasta,
 
     init(use_gpu)
 
+    print(model_path)
     encoder = load_encoder(use_gpu, model_path)
     proteins = read_fasta(fasta_file)
 
