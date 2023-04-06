@@ -53,17 +53,22 @@ def init(use_gpu):
                     '#cublasApi_reproducibility\n'), err=True)
 
 
-def load_encoder(use_gpu):
-    root_path = Path(__file__).parent
-    model_path = Path(root_path, 'models/t5/')
+def get_parent():
+    """
+    Get the parent path for models
+    """
+    return Path(Path(__file__).parent, 'models')
 
+
+def load_encoder(use_gpu, model_path=None):
+    if model_path is None:
+        model_path = Path(get_parent(), 't5')
     return T5Encoder(model_path, use_gpu)
 
 
 def load_models():
     models = []
-    root_path = Path(__file__).parent
-    model_path = Path(root_path, 'models/cnn/')
+    model_path = Path(get_parent(), 'cnn')
 
     for model_file in sorted(model_path.glob('*.pt')):
         model = Predictor()
@@ -132,12 +137,15 @@ def predict_sequences(models, embeddings, mask):
 
     return pred.detach()
 
+
 @app.command()
 def download(use_gpu: bool = ARGS.use_gpu):
     '''
     Download models if necessary.
     '''
-    encoder = load_encoder((use_gpu and torch.cuda.is_available()))
+    model_path = Path(get_parent(), 't5')
+    print(f'Models will be saved to: {model_path}')
+    T5Encoder(model_path, (use_gpu and torch.cuda.is_available()))
 
 
 @app.command()
@@ -145,7 +153,8 @@ def embed(fasta_file: Path = ARGS.fasta,
           embeddings_file: Path = ARGS.emb_out,
           batch_size: int = ARGS.batch_size,
           use_gpu: bool = ARGS.use_gpu,
-          cpu_fallback: bool = ARGS.cpu_fallback):
+          cpu_fallback: bool = ARGS.cpu_fallback,
+          model_path: Path = ARGS.model_path):
     '''
     Generate ProtT5 embeddings for a set of protein sequences.
     '''
@@ -153,7 +162,7 @@ def embed(fasta_file: Path = ARGS.fasta,
 
     init(use_gpu)
 
-    encoder = load_encoder(use_gpu)
+    encoder = load_encoder(use_gpu, model_path)
     proteins = read_fasta(fasta_file)
 
     proteins.sort(key=lambda protein: protein.length)
@@ -200,7 +209,8 @@ def predict(fasta_file: Path = ARGS.fasta,
             out_format: OutFmt = ARGS.out_format,
             batch_size: int = ARGS.batch_size,
             use_gpu: bool = ARGS.use_gpu,
-            cpu_fallback: bool = ARGS.cpu_fallback):
+            cpu_fallback: bool = ARGS.cpu_fallback,
+            model_path: Path = ARGS.model_path):
     '''
     Predict transmembrane proteins and segments using embeddings.
     If no embeddings file is supplied, embeddings are generated on the fly.
@@ -217,7 +227,7 @@ def predict(fasta_file: Path = ARGS.fasta,
               'with_probabilities': with_probabilities}
 
     if not embeddings_file:
-        encoder = load_encoder(use_gpu)
+        encoder = load_encoder(use_gpu, model_path)
 
     models = load_models()
     proteins = read_fasta(fasta_file)
