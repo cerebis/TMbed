@@ -23,7 +23,7 @@ from transformers import T5EncoderModel, T5Tokenizer
 
 class T5Encoder:
 
-    def __init__(self, model_path, use_gpu=True, cache_dir=):
+    def __init__(self, model_path, use_gpu=True):
         if not Path(model_path, 'config.json').exists():
             self._download_models(model_path)
 
